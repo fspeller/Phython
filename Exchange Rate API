@@ -1,0 +1,20 @@
+>>> import requests
+>>> import pandas as pd
+>>> url = "http://api.exchangeratesapi.io/v1/latest?access_key=d1c79dbdb6bf6237582de50591451436"  #Make sure to change ******* to your API key.
+>>> access_key = "d1c79dbdb6bf6237582de50591451436"
+>>>
+>>> url_data = requests.get(url)
+>>>
+>>> url_data = url_data.json()
+>>> dataframe = pd.DataFrame(url_data)
+>>> dataframe.drop(dataframe.columns[[0,1,2,3]], axis = 1,inplace = True)
+>>>
+>>> dataframe.head()
+          rates
+AED    4.039114
+AFN   97.334163
+ALL  122.119134
+AMD  539.247792
+ANG    1.980976
+>>> dataframe.to_csv('exchange_rates_1.csv')
+>>> dataframe.to_csv(r'Downloads\exchange_rates.csv')
