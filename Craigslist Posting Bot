@@ -1,0 +1,124 @@
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+import time
+from selenium.webdriver.support.ui import WebDriverWait
+import os.path
+from selenium.webdriver.common.by import By
+
+def find(browser):
+    add_images = browser.find_element(By.XPATH,'//input[@name="file"]')
+    if add_images:
+        return add_images
+    else:
+        return False
+
+
+browser =  webdriver.Chrome(r"C:\Users\user\Downloads\chromedriver.exe")
+browser.get('https://post.craigslist.org/')
+browser.find_element(By.CLASS_NAME, 'ui-selectmenu-text').click()
+
+#Select Area ID
+browser.find_element(By.XPATH,'//li[@id="ui-id-464"]').click()
+browser.find_element(By.XPATH,'//button[@name="go"]').click()
+
+#Post Type
+browser.find_element(By.XPATH,'//input[@name="id" and @value="ho"]').click() #housing offer
+
+#Category
+browser.find_element(By.XPATH,'//input[@name="id" and @value="143"]').click() #real estate - by owner
+
+#Main Post Page
+
+#Posting Title
+title_area = browser.find_element(By.XPATH,'//input[@name="PostingTitle" and @id="PostingTitle"]')
+title_area.send_keys('Amazing House')
+
+#Posting City
+city = browser.find_element(By.XPATH,'//input[@name="geographic_area" and @id="geographic_area"]')
+city.send_keys('Orlando, FL')
+
+# Posting Zip Code
+Postal_Code = browser.find_element(By.XPATH,'//input[@name="postal" and @id="postal_code"]')
+Postal_Code.send_keys('32789')
+time.sleep(1)
+
+#Description
+Description = browser.find_element(By.XPATH,'//textarea[@name="PostingBody" and @id="PostingBody"]')
+Description.send_keys('Please email me for this property')
+Description.send_keys(Keys.ENTER)
+Description.send_keys(Keys.ENTER)
+Description.send_keys('This is a post for you from me and I am the broker')
+
+
+#House Type
+
+house_type = browser.find_element(By.XPATH,'//span[@id="ui-id-1-button"]').click()
+
+actions = ActionChains(browser)
+
+for x in range(5):
+    actions.send_keys(Keys.ARROW_DOWN)
+actions.send_keys(Keys.ENTER).click()
+actions.perform()
+
+laundry = browser.find_element(By.XPATH,'//span[@id="ui-id-2-button"]').click()
+browser.find_element(By.XPATH,'//li[@id="ui-id-24"]').click()
+
+bathrooms = browser.find_element(By.XPATH,'//span[@id="ui-id-5-button"]').click()
+for x in range(4):
+    actions.send_keys(Keys.ARROW_DOWN)
+actions.send_keys(Keys.ENTER).click()
+actions.perform()
+
+bedrooms = browser.find_element(By.XPATH,'//span[@id="ui-id-4-button"]').click()
+for x in range(5):
+    actions.send_keys(Keys.ARROW_DOWN)
+actions.send_keys(Keys.ENTER).click()
+actions.perform()
+
+parking = browser.find_element(By.XPATH,'//span[@id="ui-id-3-button"]').click()
+for x in range(2):
+    actions.send_keys(Keys.ARROW_DOWN)
+actions.send_keys(Keys.ENTER).click()
+actions.perform()
+
+browser.find_element(By.XPATH,'//input[@name="show_phone_ok"]').click()
+time.sleep(1)
+
+phone_number = browser.find_element(By.XPATH,'//input[@name="contact_phone"]')
+phone_number.send_keys('555-555-5555')
+
+contact_name = browser.find_element(By.XPATH,'//input[@name="contact_name"]')
+contact_name.send_keys('Fred Speller')
+
+email = browser.find_element(By.XPATH,'//input[@name = "FromEMail"]')
+email.send_keys('fred.speller@icloud.com')
+
+browser.find_element(By.XPATH,'//button[@name="go" and @value="continue"]').click()
+
+browser.find_element(By.XPATH,'//button[@class = "continue bigbutton"]').click()
+
+#Send Pictures
+browser.find_element(By.XPATH,'//a[@id = "classic"]').click()
+
+add_images = browser.find_element(By.XPATH,'//input[@name = "file"]')
+
+img = []
+path = r'C:\Users\user\PycharmProjects\pythonProject\Craigslist Post'
+valid_image = ['.png','.jpg']
+for pictures in os.listdir(path):
+    ext = os.path.splitext(pictures)[1]
+    if ext.lower() not in valid_image:
+        continue
+    print(pictures)
+    img.append(f'/Craigslist Post/{pictures}')
+
+for i in sorted(img):
+    if add_images != False:
+        print(os.getcwd() + i)
+        add_images.send_keys(os.getcwd() + i)
+        add_images = WebDriverWait(browser, 3).until(find)
+    else:
+        continue
+browser.find_element(By.XPATH, '//button[@value = "Done with Images"]').click()
