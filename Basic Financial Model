@@ -1,0 +1,215 @@
+import pandas as pd
+import random
+
+class Startup:
+    def __init__(self):
+        self.investment = 23000  # Initial investment
+        self.operating_costs = {
+            'monthly_salaries': 0,
+            'server_costs': 0,
+            'software_costs': 0,
+        }  # Ongoing costs
+
+        self.b2c_products = {
+            'travel_insurance': {'commission_rate': 0.05, 'sales': 0},
+            'plane_tickets': {'commission_rate': 0.03, 'sales': 0},
+            'car_rental': {'commission_rate': 0.03, 'sales': 0},
+            'travel_credit_card': {'commission_rate': 0.03, 'sales': 0},
+            'hotel_reservations': {'commission_rate': 0.03, 'sales': 0},
+        }
+
+        # B2B product pricing - for a fixed amount of api calls per month 
+        self.b2b_pricing = {
+            'hotel': {
+                'base': 5300,
+                'advanced': 7300,
+            },
+            'museum': {
+                'base': 7300,
+                'advanced': 11700,
+            },
+            'restaurant': {
+                'base': 3600,
+                'advanced': 5300,
+            }
+        }
+        self.b2b_sales = {'hotel': {'base': 0, 'advanced': 0}, 'museum': {'base': 0, 'advanced': 0}, 'restaurant': {'base': 0, 'advanced': 0}}  # Total sales from B2B
+
+    def add_investment(self, amount):
+        self.investment += amount
+
+    def add_operating_cost(self, cost_type, amount):
+        self.operating_costs[cost_type] += amount
+
+    def add_b2c_sales(self, product_type, amount):
+        self.b2c_products[product_type]['sales'] += amount
+
+    def add_b2b_sales(self, product_type, is_advanced):
+        if is_advanced:
+            price = self.b2b_pricing[product_type]['advanced']
+            self.b2b_sales[product_type]['advanced'] += price
+        else:
+            price = self.b2b_pricing[product_type]['base']
+            self.b2b_sales[product_type]['base'] += price
+
+    def calculate_b2c_revenue(self):
+        return sum(product['sales'] * product['commission_rate'] for product in self.b2c_products.values())
+
+    def calculate_b2b_revenue(self):
+        return sum(sum(sales.values()) for sales in self.b2b_sales.values())
+
+
+    def calculate_total_revenue(self):
+        return self.calculate_b2c_revenue() + self.calculate_b2b_revenue()
+
+    def calculate_total_operating_costs(self):
+        return sum(self.operating_costs.values())
+
+    def calculate_balance(self):
+        return self.calculate_total_revenue() - self.investment - self.calculate_total_operating_costs()
+    
+
+    def estimate_future_cash_flows(self, revenue_growth_rate, cost_growth_rate, periods):
+        future_cash_flows = []
+        b2b_sales_list = []
+        b2b_hotel_sales_list = []
+        b2b_museum_sales_list = []
+        b2b_restaurant_sales_list = []
+        operating_costs_list = []
+        
+        # Initialize client counts
+        client_counts = {product_type: {'base': 0, 'advanced': 0} for product_type in self.b2b_sales}
+
+        new_client_probability = 0.01  # Change this to adjust the rate of new client arrival
+
+        for _ in range(periods):
+            # Estimate future revenue and costs for one month ahead
+            revenue = self.calculate_total_revenue() * (1 + revenue_growth_rate / 12)
+            costs = self.calculate_total_operating_costs() * (1 + cost_growth_rate / 12)
+
+            # Calculate net cash flow
+            cash_flow = revenue - costs
+
+            future_cash_flows.append(cash_flow)
+            b2b_sales_list.append(self.calculate_b2b_revenue())
+            b2b_hotel_sales_list.append(sum(self.b2b_sales['hotel'].values()))
+            b2b_museum_sales_list.append(sum(self.b2b_sales['museum'].values()))
+            b2b_restaurant_sales_list.append(sum(self.b2b_sales['restaurant'].values()))
+            operating_costs_list.append(costs)
+
+            # Update current revenue and costs for next month
+            self.operating_costs = {cost: amount * (1 + cost_growth_rate / 12) for cost, amount in self.operating_costs.items()}
+
+            # Generate new B2B sales for each product
+            for product_type in self.b2b_sales:
+                if random.random() < new_client_probability:  # Decide whether a new client arrives
+                    is_advanced = random.randint(0, 1)  # Randomly decide whether the client chooses advanced
+
+                    if is_advanced:
+                        self.b2b_sales[product_type]['advanced'] += self.b2b_pricing[product_type]['advanced']
+                        client_counts[product_type]['advanced'] += 1
+                    else:
+                        self.b2b_sales[product_type]['base'] += self.b2b_pricing[product_type]['base']
+                        client_counts[product_type]['base'] += 1
+
+        ## Create a DataFrame with the future cash flows and additional columns
+        df_cash_flows = pd.DataFrame({
+            "Cash Flow": future_cash_flows,
+            "B2B Sales": b2b_sales_list,
+            "B2B Hotel Sales": b2b_hotel_sales_list,
+            "B2B Museum Sales": b2b_museum_sales_list,
+            "B2B Restaurant Sales": b2b_restaurant_sales_list,
+            "Operating Costs": operating_costs_list,
+            
+        })
+        # Add client counts to the DataFrame
+        #"Hotel Base Clients": [client_counts['hotel']['base'] for _ in range(periods)],
+        #"Hotel Advanced Clients": [client_counts['hotel']['advanced'] for _ in range(periods)],
+        #"Museum Base Clients": [client_counts['museum']['base'] for _ in range(periods)],
+        #"Museum Advanced Clients": [client_counts['museum']['advanced'] for _ in range(periods)],
+        #"Restaurant Base Clients": [client_counts['restaurant']['base'] for _ in range(periods)],
+        #"Restaurant Advanced Clients": [client_counts['restaurant']['advanced'] for _ in range(periods)],
+        return df_cash_flows
+
+
+
+    def calculate_dcf(self, discount_rate, revenue_growth_rate, cost_growth_rate, periods):
+        future_cash_flows_df = self.estimate_future_cash_flows(revenue_growth_rate, cost_growth_rate, periods)
+        future_cash_flows = future_cash_flows_df["Cash Flow"].values
+        dcf = sum(cf / ((1 + discount_rate) ** (i + 1)) for i, cf in enumerate(future_cash_flows))
+        return dcf
+
+
+startup = Startup()
+
+# Add  operating costs
+startup.add_operating_cost('monthly_salaries', 6000)
+startup.add_operating_cost('server_costs', 300)
+startup.add_operating_cost('software_costs', 120)
+
+# Add B2C sales
+#startup.add_b2c_sales('travel_insurance', 0)
+#startup.add_b2c_sales('plane_tickets', 1120)
+#startup.add_b2c_sales('hotel_reservations', 3300)
+#startup.add_b2c_sales('car_rental', 0)
+# Add B2B sales
+startup.add_b2b_sales('restaurant', False)
+#startup.add_b2b_sales('hotel', False)
+#startup.add_b2b_sales('museum', False)
+# Calculate and print the DCF
+discount_rate = 0.05  # 5% discount rate
+periods = 60  # 24 months (two years)
+revenue_growth_rate = 0.01  # 10% revenue growth rate / 12 months
+cost_growth_rate = 0.15  # 5% cost growth rate
+
+# Calculate and print the balance
+#print(f"Total revenue: {startup.calculate_total_revenue()}\n")
+# Calculate and print the percentage of revenue from each sector
+total_revenue = startup.calculate_total_revenue()
+b2b_revenue = startup.calculate_b2b_revenue()
+b2c_revenue = total_revenue - b2b_revenue
+b2b_percentage = (b2b_revenue / total_revenue) * 100
+b2c_percentage = 100 - b2b_percentage
+print(f"B2B Revenue Percentage: {b2b_percentage:.2f}% \n")
+print(f"B2C Revenue Percentage: {b2c_percentage:.2f}% \n")
+
+# Print the detailed revenue of B2B
+print("Detailed Revenue (B2B):")
+for product_type, sales in startup.b2b_sales.items():
+    base_sales = startup.b2b_pricing[product_type]['base']
+    advanced_sales = startup.b2b_pricing[product_type]['advanced']
+    basic_sales_count = sales['base'] // base_sales
+    advanced_sales_count = sales['advanced'] // advanced_sales
+    print(f"{product_type}:")
+    print(f"  Basic Sales: {basic_sales_count} units, Revenue: {basic_sales_count * base_sales:.2f}")
+    print(f"  Advanced Sales: {advanced_sales_count} units, Revenue: {advanced_sales_count * advanced_sales:.2f}")
+
+
+# Print the detailed revenue of B2C
+print("\nDetailed Revenue (B2C):")
+for product_type, product_info in startup.b2c_products.items():
+    commission_rate = product_info['commission_rate']
+    sales = product_info['sales']
+    revenue = sales * commission_rate
+    print(f"{product_type}:")
+    print(f"  Sales: ${sales} , Revenue: {revenue:.2f}")
+
+future_cash_flows_df = startup.estimate_future_cash_flows(revenue_growth_rate, cost_growth_rate, periods)
+
+print("_____________________________________________")
+print(f"Total operating costs: {startup.calculate_total_operating_costs()}")
+print(f"Detailed Monthly costs: \n {startup.operating_costs}")
+print("_____________________________________________")
+print(f"Total Investment so far: {startup.investment}")
+print(f"Overall Balance: {startup.calculate_balance()}")
+print("_____________________________________________")
+print(f"This are the configurations of DCF valuation \n discount_rate : {discount_rate} \n periods : {periods} \n revenue_growth_rate : {revenue_growth_rate} \n cost_growth_rate :{cost_growth_rate}")
+DCF = startup.calculate_dcf(discount_rate, revenue_growth_rate, cost_growth_rate, periods)
+print("DCF: {:.2f}".format(DCF))
+print("_____________________________________________")
+current_cost = sum(startup.operating_costs.values())
+
+# Calculate the runway
+runway = float(DCF) / current_cost
+
+print("Runway - Based on cost / DCF: {:.2f}".format(runway), "Months")
